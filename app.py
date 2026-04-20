@@ -35,6 +35,41 @@ def handle_options(path=""):
 
 
 # ── DATABASE ───────────────────────────────────────────
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS circuits (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            name        TEXT NOT NULL,
+            qubits      INTEGER NOT NULL,
+            gates       TEXT NOT NULL,
+            last_result TEXT,
+            description TEXT DEFAULT '',
+            tags        TEXT DEFAULT '[]',
+            run_count   INTEGER DEFAULT 0,
+            created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    # Safe column migrations for older DBs
+    for col, dflt in [
+        ("description", "''"),
+        ("tags",        "'[]'"),
+        ("run_count",   "0"),
+        ("updated_at",  "CURRENT_TIMESTAMP"),
+    ]:
+        try:
+            c.execute(f"ALTER TABLE circuits ADD COLUMN {col} TEXT DEFAULT {dflt}")
+        except Exception:
+            pass
+    conn.commit()
+    conn.close()
+
+def get_db():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 
 # ── PURE-PYTHON STATEVECTOR SIMULATOR ─────────────────
